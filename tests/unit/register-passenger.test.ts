@@ -51,6 +51,7 @@ describe("RegisterPassenger", () => {
       }),
     ]);
     expect(repository.listOutboxEvents()[0]).toMatchObject({
+      eventType: "forest-bus.registry.passenger-registered.v1",
       aggregateId: testIds.passengerId(),
       producer: "forest-bus-registry",
       data: {
@@ -176,6 +177,18 @@ describe("RegisterPassenger", () => {
     expect(result.registration.passenger.migrationAliases).toEqual(
       testImportCommand.migrationAliases,
     );
+    expect(repository.listOutboxEvents()).toEqual([
+      expect.objectContaining({
+        eventType: "forest-bus.registry.passenger-imported.v1",
+        data: {
+          passengerId: testIds.passengerId(),
+          passengerNo: testIds.passengerNo(),
+          publicProfileId: testIds.publicProfileId(),
+          migrationRunIds: ["synthetic-migration-run-1"],
+          sourceRevisions: [{ kind: "SOURCE_NATIVE", value: "synthetic-v1" }],
+        },
+      }),
+    ]);
     await expect(
       testImportPassenger(new InMemoryRegistryRepository()).execute({
         ...testImportCommand,
@@ -196,6 +209,18 @@ describe("RegisterPassenger", () => {
         migrationAliases: [withoutSourceRevision],
       } as typeof testImportCommand),
     ).rejects.toThrow();
+    await expect(
+      testImportPassenger(new InMemoryRegistryRepository()).execute({
+        ...testImportCommand,
+        migrationAliases: [
+          {
+            ...testImportCommand.migrationAliases[0]!,
+            sourceRevisionKind: "CANONICAL_RECORD_SHA256",
+            sourceRevision: "not-a-sha256",
+          },
+        ],
+      }),
+    ).rejects.toThrow("canonical_record_revision_must_be_sha256");
   });
 
   it("does not expose migration-only IDs on the operator command", async () => {

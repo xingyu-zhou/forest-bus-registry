@@ -91,6 +91,38 @@ describe("public profile projection", () => {
     });
   });
 
+  it("preserves a published Legacy provisional display name", () => {
+    const publication = PassengerPublicationSchema.parse({
+      passengerId: TEST_PASSENGER_ID,
+      publicProfileId: TEST_PUBLIC_PROFILE_ID,
+      visibility: "PUBLIC",
+      lifecycle: "ACTIVE",
+      fieldDecisions: {
+        passengerKind: "PRIVATE",
+        birthDate: "PRIVATE",
+        personality: "PRIVATE",
+        favoriteThings: "PRIVATE",
+        selfIntroduction: "PRIVATE",
+        historicalProductName: "PRIVATE",
+      },
+      revision: 2,
+      publishedAt: TEST_NOW,
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+    });
+
+    expect(
+      buildPublicProfileProjection({
+        profile: {
+          ...profile,
+          displayName: undefined,
+          provisionalDisplayName: "Published Legacy display name",
+        },
+        publication,
+      }),
+    ).toMatchObject({ displayName: "Published Legacy display name" });
+  });
+
   it("publishes only a ready public derivative owned by the same Passenger", () => {
     const imageId = `img_${"2".repeat(32)}`;
     const publication = PassengerPublicationSchema.parse({

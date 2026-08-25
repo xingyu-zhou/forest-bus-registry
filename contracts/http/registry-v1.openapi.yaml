@@ -324,6 +324,9 @@ components:
           type: string
           enum:
             - LEGACY_PASSENGER_KEY
+            - LEGACY_PASSENGER_NO
+            - LEGACY_PUBLIC_PROFILE_ID
+            - LEGACY_PUBLIC_URL
             - IMPORT_EXTERNAL_KEY
             - LEGACY_PRODUCT_REFERENCE
         value:
@@ -344,6 +347,13 @@ components:
           minLength: 1
           maxLength: 64
           pattern: '^(?:\S|\S[\s\S]*\S)$'
+        sourceRevisionKind:
+          type: string
+          enum: [SOURCE_NATIVE, CANONICAL_RECORD_SHA256]
+          description: >-
+            Uses the source-native immutable revision when one exists.
+            Otherwise the importer records the lowercase SHA-256 of the
+            canonical raw source record; it must not invent a revision label.
         sourceRevision:
           type: string
           minLength: 1
@@ -364,7 +374,18 @@ components:
         - provenance
         - migrationRunId
         - transformVersion
+        - sourceRevisionKind
         - sourceRevision
+      allOf:
+        - if:
+            properties:
+              sourceRevisionKind:
+                const: CANONICAL_RECORD_SHA256
+            required: [sourceRevisionKind]
+          then:
+            properties:
+              sourceRevision:
+                pattern: "^[0-9a-f]{64}$"
       additionalProperties: false
     RegisterPassengerResponse:
       type: object

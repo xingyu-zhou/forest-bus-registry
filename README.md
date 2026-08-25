@@ -48,7 +48,15 @@ discardable and cannot make authoritative decisions.
 
 The in-memory adapter is test-only. No production database, bucket, queue,
 authentication, HTTP server, infrastructure, migration, or deployment is
-claimed by this repository state.
+claimed by this repository state. The Access/Recovery records are also only
+provisional shapes: verified-email recovery states, global identity
+uniqueness, email change/removal, device grants, single-Passenger transfer,
+authorization, and audited commands remain production blockers.
+
+The current Registry outbox shapes are internal staging records only. No event
+publisher or external consumer is approved; versioned JSON Schema and consumer
+review are required before either registration or migration events leave the
+Registry boundary.
 
 ## Why the current systems cannot simply be continued
 
@@ -67,20 +75,32 @@ claimed by this repository state.
 ## Local development
 
 Requirements: Node.js 24 and the exact pnpm version pinned in `package.json`.
+In a fresh workspace, install Registry and Archive separately from each
+repository's committed lockfile before running the cross-repository check:
 
 ```bash
 corepack pnpm install --frozen-lockfile
+corepack pnpm --dir ../forest-bus-archive install --frozen-lockfile
 corepack pnpm check:workspace
 ```
 
 `archive:compat` expects `../forest-bus-archive` by default. It reports the
-consumer revision, dirty state, aggregate success, and synthetic checksum. CI
-must set `FOREST_BUS_ARCHIVE_REVISION` to an approved clean consumer commit.
+consumer revision, dirty state, aggregate success, and synthetic checksum. The
+public Registry repository's default `GITHUB_TOKEN` cannot read the private
+Archive repository, so repository CI runs the self-contained `pnpm check` and
+the cross-repository check runs in a controlled workspace with explicit
+read-only Archive access. Environment variables cannot bypass the committed
+consumer lock; retain that separate run as review evidence.
 
 ## Next gates
 
 1. Inventory and checksum all Legacy Passenger/NFC/access writers and the two
-   existing import manifests; do not infer production counts from code.
+   claimed import manifests; do not infer production counts from code. The
+   reviewed Legacy revision
+   `67ef297f0fcb0b18dbde25988678efc98d96bf88` contains only
+   `scripts/one-off-passenger-import-20260605.mjs`, whose contract expects 18
+   records. Registry contains neither claimed manifest and has no second-batch
+   evidence or evidence for the claimed total of 37.
 2. Approve full Passenger, PassengerPublication, media, new NFC issuance,
    Access/Recovery, auth, and persistence semantics before production
    implementation.
@@ -94,6 +114,12 @@ must set `FOREST_BUS_ARCHIVE_REVISION` to an approved clean consumer commit.
 6. During active operation, route reconciled `/p/*` and `/n/*` traffic from
    Legacy to Registry. At a separately approved final business shutdown,
    export the last snapshot and route Registry to Archive.
+
+Before any production traffic, evidence must show that Legacy and vNext
+principals are effectively denied Registry database writes and Registry image
+bucket Put/Delete/Copy/multipart actions. A document, source import scan, or
+separate repository is not permission evidence; retain IAM simulation and live
+`AccessDenied` probe results for every deployed principal.
 
 Detailed ownership, migration gates, ADRs, and integration rules are under
 [`docs/`](docs/architecture/ownership.md).

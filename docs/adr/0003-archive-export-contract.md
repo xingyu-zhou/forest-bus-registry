@@ -7,7 +7,11 @@
 
 Archive 必须在业务最终关闭后独立、只读运行。Registry 因此需要从一开始持续验证可归档性，而不能等到关闭时才尝试映射数据。
 
-已提交的 Archive v1 原本只接受并在 normalization 中固定 `source.system = forest-bus-legacy`。共享工作区现已实现 synthetic producer 兼容修正，允许 `forest-bus-registry` 并保留来源值，但该修正尚未提交或部署，不能作为当前生产兼容证明。
+Archive v1 原本只接受并在 normalization 中固定
+`source.system = forest-bus-legacy`。兼容修正已在 Archive
+`2d00447a4fd72409debb7847f6b1bdfe4f2a5b96` 提交，允许
+`forest-bus-registry` 并保留来源值；该提交尚未部署，也不构成生产兼容或
+cutover 批准。
 
 ## 决策
 
@@ -23,7 +27,9 @@ Registry 的目标是提供离线、确定性的 Archive exporter。当前初始
 
 `archivedJourneyStatus` 和 `publicEvents` 的事实所有权尚未批准，当前 mapper 固定为空，不从 Legacy 混合事件中猜测。`REVOKED` NFC 在 Archive v1 没有可表达 disposition，当前 mapper 明确失败，不能静默遗漏已发行 URL。
 
-初始 compatibility fixture 使用完全 synthetic 数据，并交给 Archive 自身的 validator 和构建测试消费。Registry 内复制的 Schema 不能取代 Archive 消费者测试。
+初始 compatibility fixture 使用完全 synthetic 数据，必须由 Registry 的实际
+profile/NFC mapper 机械生成，并交给 Archive 自身的 validator、路由生成器和
+图片字节验证消费。Registry 内复制的 Schema 不能取代 Archive 消费者测试。
 
 ## 持续验证
 

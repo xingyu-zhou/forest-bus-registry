@@ -62,6 +62,7 @@ export const testImportCommand = {
       provenance: "EXACT_SOURCE" as const,
       migrationRunId: "synthetic-migration-run-1",
       transformVersion: "synthetic-transform-v1",
+      sourceRevisionKind: "SOURCE_NATIVE" as const,
       sourceRevision: "synthetic-v1",
       sourceCreatedAt: "2026-06-05T00:00:00Z",
       sourceUpdatedAt: "2026-07-09T00:00:00Z",

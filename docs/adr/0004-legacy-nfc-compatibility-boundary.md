@@ -25,7 +25,9 @@ Legacy 已发行 `nfc_<12 uppercase Crockford>` alias，并实现
 - Binding 创建必须从已经建立关系的 Passenger/PublicProfile 推导标识，不能让
   调用方任意拼接两个 ID；
 - 状态和 `writtenAt`、`verifiedAt`、`lockedAt`、`replacedAt`、`revokedAt`
-  必须一致；byte-for-byte read-back 仍是 Legacy 兼容证据；
+  必须一致；当前骨架只比较解析后的 observed URL，不能作为 byte-for-byte
+  read-back 证据。生产 NFC Attempt 必须另存 expected payload SHA-256，并对设备
+  读回原始 NDEF bytes 重新计算后比较；
 - NFC alias 只是公开 locator，不是 secret、所有权、认证、Access 或防伪证明。
 
 Registry 在新的 token entropy、生产/staging origin、Session/Attempt、设备锁定、

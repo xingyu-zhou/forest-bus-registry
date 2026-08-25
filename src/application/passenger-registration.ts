@@ -69,6 +69,10 @@ export function commandFingerprint(kind: string, value: unknown): string {
     .digest("hex");
 }
 
+function compareCodeUnits(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 export class PassengerRegistrationWriter {
   readonly #repository: RegistryRepository;
   readonly #clock: Clock;
@@ -150,21 +154,60 @@ export class PassengerRegistrationWriter {
       updatedAt: now,
     });
 
+    const baseEvent = {
+      eventId,
+      schemaVersion: 1 as const,
+      occurredAt: now,
+      aggregateId: passengerId,
+      aggregateVersion: 1,
+      correlationId: input.context.correlationId,
+      producer: "forest-bus-registry" as const,
+    };
+    const outboxEvent =
+      input.action === "REGISTER_PASSENGER"
+        ? {
+            ...baseEvent,
+            eventType: "forest-bus.registry.passenger-registered.v1" as const,
+            data: { passengerId, passengerNo, publicProfileId },
+          }
+        : {
+            ...baseEvent,
+            eventType: "forest-bus.registry.passenger-imported.v1" as const,
+            data: {
+              passengerId,
+              passengerNo,
+              publicProfileId,
+              migrationRunIds: [
+                ...new Set(
+                  (input.migrationAliases ?? []).map(
+                    (alias) => alias.migrationRunId,
+                  ),
+                ),
+              ].sort(compareCodeUnits),
+              sourceRevisions: [
+                ...new Map(
+                  (input.migrationAliases ?? []).map((alias) => [
+                    `${alias.sourceRevisionKind}:${alias.sourceRevision}`,
+                    {
+                      kind: alias.sourceRevisionKind,
+                      value: alias.sourceRevision,
+                    },
+                  ]),
+                ).values(),
+              ].sort((left, right) =>
+                compareCodeUnits(
+                  `${left.kind}:${left.value}`,
+                  `${right.kind}:${right.value}`,
+                ),
+              ),
+            },
+          };
+
     return this.#repository.createPassengerRegistration({
       commandId: input.context.commandId,
       commandFingerprint: input.commandFingerprint,
       registration: { passenger, publicProfile, publication },
-      outboxEvent: {
-        eventId,
-        eventType: "forest-bus.registry.passenger-registered.v1",
-        schemaVersion: 1,
-        occurredAt: now,
-        aggregateId: passengerId,
-        aggregateVersion: 1,
-        correlationId: input.context.correlationId,
-        producer: "forest-bus-registry",
-        data: { passengerId, passengerNo, publicProfileId },
-      },
+      outboxEvent,
       auditRecord: {
         commandId: input.context.commandId,
         action: input.action,
