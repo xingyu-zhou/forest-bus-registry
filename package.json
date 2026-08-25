@@ -1,0 +1,32 @@
+{
+  "name": "forest-bus-registry",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": ">=24.12.0 <25"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "architecture": "node --experimental-strip-types scripts/check-boundaries.ts",
+    "archive:fixture": "tsc -p tsconfig.build.json && node --experimental-strip-types scripts/export-synthetic-archive.ts",
+    "archive:compat": "tsc -p tsconfig.build.json && node --experimental-strip-types scripts/verify-archive-compatibility.ts",
+    "check": "prettier --check . && tsc --noEmit && node --experimental-strip-types scripts/check-boundaries.ts && vitest run && tsc -p tsconfig.build.json",
+    "check:workspace": "corepack pnpm check && corepack pnpm archive:compat"
+  },
+  "dependencies": {
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "prettier": "3.9.6",
+    "typescript": "6.0.3",
+    "vitest": "4.1.10"
+  }
+}

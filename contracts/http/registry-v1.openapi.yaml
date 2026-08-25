@@ -1,0 +1,457 @@
+openapi: 3.1.0
+info:
+  title: Forest Bus Registry API
+  version: 0.1.0
+  description: >-
+    Initial contract surface. This file establishes ownership and integration
+    direction; it is not a deployed production API or cutover authorization.
+servers: []
+tags:
+  - name: Health
+  - name: Operator
+  - name: Migration
+  - name: Internal integration
+  - name: Public
+paths:
+  /health:
+    get:
+      tags: [Health]
+      operationId: getHealth
+      responses:
+        "200":
+          description: Process is healthy.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    const: ok
+                required: [status]
+                additionalProperties: false
+  /v1/operator/passengers:
+    post:
+      tags: [Operator]
+      operationId: registerPassenger
+      security:
+        - OperatorBearer: []
+      description: >-
+        Atomically creates Passenger, PublicProfile, a private draft
+        Publication, idempotency result, audit context, and outbox event. The
+        authenticated principal is mapped to the internal actor by the HTTP
+        adapter and is never accepted from this request body.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterPassengerRequest"
+      responses:
+        "200":
+          description: Idempotent replay of an existing command.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterPassengerResponse"
+        "201":
+          description: Passenger registered.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterPassengerResponse"
+        "409":
+          description: Permanent ID/alias conflict or idempotency mismatch.
+        "401":
+          description: Missing or invalid operator credential.
+        "403":
+          description: Authenticated principal lacks the register scope.
+  /v1/migration/passengers:
+    post:
+      tags: [Migration]
+      operationId: importPassenger
+      security:
+        - MigrationBearer: []
+      description: >-
+        Imports a Legacy Passenger with permanent aliases and provenance. The
+        transport derives a MIGRATION actor from a dedicated credential; actor
+        identity is not accepted from the request body. This endpoint is not a
+        general operator override.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportPassengerRequest"
+      responses:
+        "200":
+          description: Idempotent replay of an existing import command.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterPassengerResponse"
+        "201":
+          description: Passenger imported as a private draft.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterPassengerResponse"
+        "401":
+          description: Missing or invalid migration credential.
+        "403":
+          description: Authenticated principal lacks the import scope.
+        "409":
+          description: Permanent ID/alias conflict or idempotency mismatch.
+  /v1/internal/passengers/{passengerId}/reference:
+    get:
+      tags: [Internal integration]
+      operationId: getPassengerReference
+      security:
+        - ServiceBearer: []
+      description: >-
+        Validates a stable identity reference. It does not expose or decide
+        price, inventory, purchasability, Order, Payment, or Shipping facts.
+      parameters:
+        - $ref: "#/components/parameters/PassengerId"
+      responses:
+        "200":
+          description: Stable Passenger reference.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PassengerReference"
+        "404":
+          description: Unknown Passenger.
+        "401":
+          description: Missing or invalid service credential.
+        "403":
+          description: Authenticated service lacks the reference-read scope.
+  /v1/integrations/commerce/passenger-references:
+    post:
+      tags: [Internal integration]
+      operationId: recordCommercePassengerReference
+      security:
+        - ServiceBearer: []
+      description: >-
+        Idempotently records an opaque Commerce reference receipt. This does
+        not create an Order model or change Passenger, ownership, Journey, or
+        PassengerAccess.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../events/commerce-passenger-reference-recorded.v1.schema.json"
+      responses:
+        "202":
+          description: Recorded or safely replayed.
+        "404":
+          description: Passenger reference is unknown.
+        "409":
+          description: Event ID was reused with different content.
+        "401":
+          description: Missing or invalid service credential.
+        "403":
+          description: Authenticated service lacks the Commerce inbox scope.
+  /v1/public/profiles/{publicProfileId}:
+    get:
+      tags: [Public]
+      operationId: getPublicProfile
+      description: >-
+        Reads the sanitized projection only when Publication is PUBLIC and
+        ACTIVE. Draft existence is not disclosed.
+      parameters:
+        - name: publicProfileId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^pp_[0-9A-HJKMNP-TV-Z]{10}$"
+      responses:
+        "200":
+          description: Sanitized public profile.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicProfile"
+        "404":
+          description: Unknown or not publicly readable.
+components:
+  securitySchemes:
+    OperatorBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+      description: >-
+        Placeholder contract name. The concrete operator issuer, audience,
+        scopes, and verification policy require a security decision before
+        implementation.
+    ServiceBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+      description: >-
+        Least-privilege service credential. Concrete issuer, audience,
+        rotation, and per-operation scopes require a security decision before
+        production use.
+    MigrationBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+      description: >-
+        Dedicated, short-lived migration credential. It must map server-side
+        to a MIGRATION actor and cannot share an operator write scope.
+  parameters:
+    PassengerId:
+      name: passengerId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/PassengerId"
+  schemas:
+    PassengerId:
+      type: string
+      pattern: "^psg_[0-9a-f]{32}$"
+      description: Stable opaque Registry ID. Clients must not parse it.
+    CommandMetadata:
+      type: object
+      properties:
+        commandId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^(?:\S|\S[\s\S]*\S)$'
+        correlationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^(?:\S|\S[\s\S]*\S)$'
+      required: [commandId, correlationId]
+      additionalProperties: false
+    RegisterPassengerRequest:
+      type: object
+      properties:
+        context:
+          $ref: "#/components/schemas/CommandMetadata"
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 120
+        passengerKind:
+          type: string
+          minLength: 1
+          maxLength: 80
+        birthDate:
+          type: string
+          format: date
+        personality:
+          type: string
+          minLength: 1
+          maxLength: 240
+        favoriteThings:
+          type: string
+          minLength: 1
+          maxLength: 240
+        selfIntroduction:
+          type: string
+          minLength: 1
+          maxLength: 800
+      required: [context, displayName]
+      additionalProperties: false
+    ImportPassengerRequest:
+      type: object
+      properties:
+        context:
+          $ref: "#/components/schemas/CommandMetadata"
+        passengerNo:
+          type: string
+          pattern: "^P-[0-9A-HJKMNP-TV-Z]{6}$"
+        publicProfileId:
+          type: string
+          pattern: "^pp_[0-9A-HJKMNP-TV-Z]{10}$"
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 120
+          description: May be absent when the Legacy record is incomplete.
+        provisionalDisplayName:
+          type: string
+          minLength: 1
+          maxLength: 120
+        passengerKind:
+          type: string
+          minLength: 1
+          maxLength: 80
+        birthDate:
+          type: string
+          format: date
+          description: Full source precision; public projection emits MM-DD only.
+        personality:
+          type: string
+          minLength: 1
+          maxLength: 240
+        favoriteThings:
+          type: string
+          minLength: 1
+          maxLength: 240
+        selfIntroduction:
+          type: string
+          minLength: 1
+          maxLength: 800
+        historicalProductName:
+          type: string
+          minLength: 1
+          maxLength: 240
+          description: Migration snapshot only; never Commerce authority.
+        migrationAliases:
+          type: array
+          items:
+            $ref: "#/components/schemas/MigrationAlias"
+          minItems: 1
+      required:
+        - context
+        - passengerNo
+        - publicProfileId
+        - migrationAliases
+      additionalProperties: false
+    MigrationAlias:
+      type: object
+      properties:
+        sourceSystem:
+          type: string
+          const: forest-bus-legacy
+        kind:
+          type: string
+          enum:
+            - LEGACY_PASSENGER_KEY
+            - IMPORT_EXTERNAL_KEY
+            - LEGACY_PRODUCT_REFERENCE
+        value:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: '^(?:\S|\S[\s\S]*\S)$'
+        provenance:
+          type: string
+          enum: [EXACT_SOURCE, DERIVED_BY_MAPPER]
+        migrationRunId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^(?:\S|\S[\s\S]*\S)$'
+        transformVersion:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: '^(?:\S|\S[\s\S]*\S)$'
+        sourceRevision:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: '^(?:\S|\S[\s\S]*\S)$'
+        sourceCreatedAt:
+          type: string
+          format: date-time
+          description: Original Legacy creation time when the source exposes it.
+        sourceUpdatedAt:
+          type: string
+          format: date-time
+          description: Original Legacy update time when the source exposes it.
+      required:
+        - sourceSystem
+        - kind
+        - value
+        - provenance
+        - migrationRunId
+        - transformVersion
+        - sourceRevision
+      additionalProperties: false
+    RegisterPassengerResponse:
+      type: object
+      properties:
+        disposition:
+          type: string
+          enum: [CREATED, REPLAYED]
+        passenger:
+          $ref: "#/components/schemas/PassengerReference"
+        publication:
+          type: object
+          properties:
+            visibility:
+              type: string
+              const: PRIVATE
+            lifecycle:
+              type: string
+              const: DRAFT
+            revision:
+              type: integer
+              const: 1
+          required: [visibility, lifecycle, revision]
+          additionalProperties: false
+      required: [disposition, passenger, publication]
+      additionalProperties: false
+    PassengerReference:
+      type: object
+      properties:
+        passengerId:
+          $ref: "#/components/schemas/PassengerId"
+        passengerNo:
+          type: string
+          pattern: "^P-[0-9A-HJKMNP-TV-Z]{6}$"
+        publicProfileId:
+          type: string
+          pattern: "^pp_[0-9A-HJKMNP-TV-Z]{10}$"
+        revision:
+          type: integer
+          minimum: 1
+      required: [passengerId, passengerNo, publicProfileId, revision]
+      additionalProperties: false
+    PublicProfile:
+      type: object
+      properties:
+        publicProfileId:
+          type: string
+          pattern: "^pp_[0-9A-HJKMNP-TV-Z]{10}$"
+        displayName:
+          type: string
+        passengerKind:
+          type: [string, "null"]
+        birthDate:
+          type: [string, "null"]
+          pattern: '^\d{2}-\d{2}$'
+        personality:
+          type: [string, "null"]
+        favoriteThings:
+          type: [string, "null"]
+        selfIntroduction:
+          type: [string, "null"]
+        image:
+          oneOf:
+            - type: "null"
+            - type: object
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  maxLength: 2048
+                  pattern: '^https://media\.forest-bus\.com/passengers/[A-Za-z0-9][A-Za-z0-9._/-]*$'
+                alt:
+                  type: string
+                width:
+                  type: integer
+                  minimum: 1
+                height:
+                  type: integer
+                  minimum: 1
+              required: [url, alt, width, height]
+              additionalProperties: false
+      required:
+        - publicProfileId
+        - displayName
+        - passengerKind
+        - birthDate
+        - personality
+        - favoriteThings
+        - selfIntroduction
+        - image
+      additionalProperties: false

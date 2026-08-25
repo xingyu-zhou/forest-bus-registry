@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://forest-bus.com/contracts/commerce-passenger-reference-recorded.v1.schema.json",
+  "title": "CommercePassengerReferenceRecordedV1",
+  "description": "A minimal idempotent notification that Commerce recorded a stable Passenger reference. It is not an Order, Payment, ownership, or access fact.",
+  "type": "object",
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^(?:\\S|\\S[\\s\\S]*\\S)$"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "forest-bus.commerce.passenger-reference-recorded.v1"
+    },
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "correlationId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^(?:\\S|\\S[\\s\\S]*\\S)$"
+    },
+    "causationId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^(?:\\S|\\S[\\s\\S]*\\S)$"
+    },
+    "producer": { "type": "string", "const": "forest-bus-legacy" },
+    "data": {
+      "type": "object",
+      "properties": {
+        "passengerId": {
+          "type": "string",
+          "pattern": "^psg_[0-9a-f]{32}$"
+        },
+        "referenceType": {
+          "type": "string",
+          "enum": ["ORDER_LINE", "OFFLINE_SALE"]
+        },
+        "referenceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^(?:\\S|\\S[\\s\\S]*\\S)$"
+        }
+      },
+      "required": ["passengerId", "referenceType", "referenceId"],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "occurredAt",
+    "correlationId",
+    "causationId",
+    "producer",
+    "data"
+  ],
+  "additionalProperties": false
+}
