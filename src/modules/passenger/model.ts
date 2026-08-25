@@ -34,6 +34,9 @@ export const MigrationAliasSchema = z
     sourceSystem: z.enum(["forest-bus-legacy"]),
     kind: z.enum([
       "LEGACY_PASSENGER_KEY",
+      "LEGACY_PASSENGER_NO",
+      "LEGACY_PUBLIC_PROFILE_ID",
+      "LEGACY_PUBLIC_URL",
       "IMPORT_EXTERNAL_KEY",
       "LEGACY_PRODUCT_REFERENCE",
     ]),
@@ -41,12 +44,23 @@ export const MigrationAliasSchema = z
     provenance: z.enum(["EXACT_SOURCE", "DERIVED_BY_MAPPER"]),
     migrationRunId: preservedIdentifierSchema(128),
     transformVersion: preservedIdentifierSchema(64),
+    sourceRevisionKind: z.enum(["SOURCE_NATIVE", "CANONICAL_RECORD_SHA256"]),
     sourceRevision: preservedIdentifierSchema(256),
     sourceCreatedAt: z.string().datetime({ offset: true }).optional(),
     sourceUpdatedAt: z.string().datetime({ offset: true }).optional(),
   })
   .strict()
   .superRefine((alias, context) => {
+    if (
+      alias.sourceRevisionKind === "CANONICAL_RECORD_SHA256" &&
+      !/^[0-9a-f]{64}$/.test(alias.sourceRevision)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "canonical_record_revision_must_be_sha256",
+        path: ["sourceRevision"],
+      });
+    }
     if (
       alias.sourceCreatedAt !== undefined &&
       alias.sourceUpdatedAt !== undefined &&

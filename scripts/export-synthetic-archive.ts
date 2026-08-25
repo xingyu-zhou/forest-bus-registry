@@ -1,12 +1,10 @@
-import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { buildSyntheticRegistryArchiveBundleV1 } from "./synthetic-archive-fixture.mjs";
+
 const registryRoot = resolve(new URL("..", import.meta.url).pathname);
 const producerModule: {
-  ArchivePublicBundleV1Schema: {
-    parse(input: unknown): unknown;
-  };
   canonicalArchivePublicBundleV1Json(bundle: unknown): string;
 } = await import(
   pathToFileURL(
@@ -14,11 +12,6 @@ const producerModule: {
   ).href
 );
 
-const fixtureUrl = new URL(
-  "../fixtures/archive/registry-public-bundle-v1.json",
-  import.meta.url,
-);
-const input: unknown = JSON.parse(await readFile(fixtureUrl, "utf8"));
-const bundle = producerModule.ArchivePublicBundleV1Schema.parse(input);
+const bundle = await buildSyntheticRegistryArchiveBundleV1();
 
 process.stdout.write(producerModule.canonicalArchivePublicBundleV1Json(bundle));

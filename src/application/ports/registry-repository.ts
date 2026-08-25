@@ -9,21 +9,40 @@ export type RegisteredPassengerSet = Readonly<{
   publication: PassengerPublication;
 }>;
 
-export type RegistryOutboxEvent = Readonly<{
+type RegistryOutboxEventEnvelope = Readonly<{
   eventId: RegistryEventId;
-  eventType: "forest-bus.registry.passenger-registered.v1";
   schemaVersion: 1;
   occurredAt: string;
   aggregateId: string;
   aggregateVersion: number;
   correlationId: string;
   producer: "forest-bus-registry";
-  data: Readonly<{
-    passengerId: string;
-    passengerNo: string;
-    publicProfileId: string;
-  }>;
 }>;
+
+export type RegistryOutboxEvent =
+  | (RegistryOutboxEventEnvelope &
+      Readonly<{
+        eventType: "forest-bus.registry.passenger-registered.v1";
+        data: Readonly<{
+          passengerId: string;
+          passengerNo: string;
+          publicProfileId: string;
+        }>;
+      }>)
+  | (RegistryOutboxEventEnvelope &
+      Readonly<{
+        eventType: "forest-bus.registry.passenger-imported.v1";
+        data: Readonly<{
+          passengerId: string;
+          passengerNo: string;
+          publicProfileId: string;
+          migrationRunIds: readonly string[];
+          sourceRevisions: readonly Readonly<{
+            kind: "SOURCE_NATIVE" | "CANONICAL_RECORD_SHA256";
+            value: string;
+          }>[];
+        }>;
+      }>);
 
 export type RegistryAuditRecord = Readonly<{
   commandId: string;

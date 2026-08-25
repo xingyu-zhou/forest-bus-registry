@@ -118,7 +118,7 @@ describe("ArchivePublicBundleV1 producer", () => {
     ).toEqual(["pp_0000000002", "pp_0000000003"]);
     expect(
       normalized.nfcBindings.map(({ bindingPublicId }) => bindingPublicId),
-    ).toEqual(["nfc_000000000001", "nfc_000000000002"]);
+    ).toEqual(["nfc_000000000001", "nfc_000000000002", "nfc_000000000003"]);
   });
 
   it("rejects profile/tombstone collisions and dangling active NFC", async () => {
@@ -264,6 +264,47 @@ describe("ArchivePublicBundleV1 producer", () => {
       archivedJourneyStatus: null,
       publicEvents: [],
     });
+  });
+
+  it("archives a published Legacy provisional display name", () => {
+    const passenger = PassengerSchema.parse({
+      passengerId: TEST_PASSENGER_ID,
+      passengerNo: TEST_PASSENGER_NO,
+      revision: 1,
+      migrationAliases: [],
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+    });
+    const profile = PassengerPublicProfileSchema.parse({
+      passengerId: TEST_PASSENGER_ID,
+      publicProfileId: TEST_PUBLIC_PROFILE_ID,
+      provisionalDisplayName: "Published Legacy display name",
+      revision: 1,
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+    });
+    const publication = PassengerPublicationSchema.parse({
+      passengerId: TEST_PASSENGER_ID,
+      publicProfileId: TEST_PUBLIC_PROFILE_ID,
+      visibility: "PUBLIC",
+      lifecycle: "ACTIVE",
+      fieldDecisions: {
+        passengerKind: "PRIVATE",
+        birthDate: "PRIVATE",
+        personality: "PRIVATE",
+        favoriteThings: "PRIVATE",
+        selfIntroduction: "PRIVATE",
+        historicalProductName: "PRIVATE",
+      },
+      revision: 2,
+      publishedAt: TEST_NOW,
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+    });
+
+    expect(
+      projectArchiveProfileV1({ passenger, profile, publication }),
+    ).toMatchObject({ displayName: "Published Legacy display name" });
   });
 
   it("maps issued Legacy NFC states to Archive route dispositions", () => {

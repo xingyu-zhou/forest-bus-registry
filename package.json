@@ -17,7 +17,7 @@
     "architecture": "node --experimental-strip-types scripts/check-boundaries.ts",
     "archive:fixture": "tsc -p tsconfig.build.json && node --experimental-strip-types scripts/export-synthetic-archive.ts",
     "archive:compat": "tsc -p tsconfig.build.json && node --experimental-strip-types scripts/verify-archive-compatibility.ts",
-    "check": "prettier --check . && tsc --noEmit && node --experimental-strip-types scripts/check-boundaries.ts && vitest run && tsc -p tsconfig.build.json",
+    "check": "prettier --check . && tsc --noEmit && node --experimental-strip-types scripts/check-boundaries.ts && vitest run && tsc -p tsconfig.build.json && node --experimental-strip-types scripts/verify-synthetic-archive-fixture.ts",
     "check:workspace": "corepack pnpm check && corepack pnpm archive:compat"
   },
   "dependencies": {
@@ -27,6 +27,7 @@
     "@types/node": "24.13.3",
     "prettier": "3.9.6",
     "typescript": "6.0.3",
-    "vitest": "4.1.10"
+    "vitest": "4.1.10",
+    "yaml": "2.9.0"
   }
 }

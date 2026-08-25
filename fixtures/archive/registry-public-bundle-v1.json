@@ -3,7 +3,7 @@
   "archivedAt": "2026-08-24T00:00:00Z",
   "source": {
     "system": "forest-bus-registry",
-    "sourceRevision": "synthetic-registry-initialization-v1"
+    "sourceRevision": "synthetic-registry-projection-v1"
   },
   "profiles": [
     {
@@ -12,28 +12,19 @@
       "displayName": "Registry Synthetic Passenger",
       "passengerKind": "Synthetic fixture",
       "profileImage": {
-        "path": "/archive/fixtures/passengers/registry-synthetic.webp",
-        "alt": "Registry Synthetic Passenger",
-        "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
-        "width": 800,
-        "height": 800
+        "path": "/archive/fixtures/passengers/pp_0000000001/profile.png",
+        "alt": "Synthetic geometric Passenger portrait",
+        "sha256": "22515efda5bf9011a9c3fc9f48d7bafbdf8bfc5b64d6108b19e3c5820cbdc71b",
+        "width": 40,
+        "height": 80
       },
       "birthDate": "02-29",
       "personality": "Synthetic personality",
       "favoriteThings": "Synthetic favorite",
       "selfIntroduction": "Archive contract verification only.",
       "productName": "Synthetic historical product snapshot",
-      "archivedJourneyStatus": "ARRIVED",
-      "publicEvents": [
-        {
-          "occurredOn": "0001-01-01",
-          "message": "Calendar lower-bound compatibility fixture."
-        },
-        {
-          "occurredOn": "2026-08-24",
-          "message": "Registry producer compatibility initialized."
-        }
-      ]
+      "archivedJourneyStatus": null,
+      "publicEvents": []
     }
   ],
   "profileTombstones": [
@@ -52,6 +43,11 @@
     {
       "bindingPublicId": "nfc_000000000002",
       "disposition": "REPLACED"
+    },
+    {
+      "bindingPublicId": "nfc_000000000003",
+      "disposition": "ACTIVE",
+      "publicProfileId": "pp_0000000002"
     }
   ]
 }

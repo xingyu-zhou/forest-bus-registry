@@ -25,7 +25,12 @@ psg_<32 lowercase hexadecimal characters>
 
 ## 迁移规则
 
-迁移映射必须记录来源系统、源记录键、原 alias、`passengerId`、迁移批次、转换版本、源 revision 以及可获得的源创建/更新时间。Registry 的 `createdAt`/`updatedAt` 是 Registry 记录时间，不能冒充 Legacy 原始时间。opaque 来源值必须原样保留或因边界空白等异常进入人工复核，不能通过 trim 等隐式规范化合并两个源键。缺失、重复、冲突或格式异常进入人工复核；不得生成新 alias 来隐藏异常，也不得根据相似名称自动合并 Passenger。
+迁移映射必须记录来源系统、源记录键、原 alias、`passengerId`、迁移批次、转换版本、源 revision 以及可获得的源创建/更新时间。历史 `passengerNo`、`publicProfileId` 和完整公开 URL 必须作为有类型的 alias 原样盘点，不能只保存当前 canonical 值。源系统存在不可变 revision 时使用 `SOURCE_NATIVE`；不存在时使用 `CANONICAL_RECORD_SHA256`，其值必须是批准 canonicalization 后的原始源记录小写 SHA-256，禁止编造 revision 标签。Registry 的 `createdAt`/`updatedAt` 是 Registry 记录时间，不能冒充 Legacy 原始时间。opaque 来源值必须原样保留或因边界空白等异常进入人工复核，不能通过 trim 等隐式规范化合并两个源键。缺失、重复、冲突或格式异常进入人工复核；不得生成新 alias 来隐藏异常，也不得根据相似名称自动合并 Passenger。
+
+Legacy 已存在的 `provisionalDisplayName` 必须原样迁移，因为它可能是历史公开
+页面唯一使用的展示名；不得仅因字段名称含 provisional 就删除。它只有在对应
+Publication 已明确为 `PUBLIC` + `ACTIVE` 时才能进入公开/Archive 投影。真正缺失
+展示名的记录进入人工复核，不生成占位名。
 
 公开 alias 不是认证或授权凭证。NFC public ID 只能定位 Resolver；Recovery secret 使用独立的高熵凭证及轮换机制，不能由任何公开 ID 派生。
 
